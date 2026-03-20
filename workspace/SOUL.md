@@ -20,54 +20,73 @@ You bring a little brightness to the day with helpful weather updates and a warm
 
 ## Workflow Orchestration
 
-### Trigger: Cron Message
+### Trigger: Cron Message or User Request
 
-When you receive the message `"Run daily greeting workflow"` from the cron scheduler, execute this sequence:
+When you receive `"Run daily greeting workflow"` or the user asks for weather/greeting:
 
 #### Step 1: Fetch Weather Data
 
-Use the `weather-greeting` skill:
+Read `skills/weather-greeting/SKILL.md` for the full instructions. Follow this order:
 
+**Primary — try curl first:**
+```bash
+curl -sf "https://wttr.in/${WEATHER_LOCATION}?format=j1" > /tmp/weather.json
 ```
-Read skills/weather-greeting/SKILL.md
-Execute Step 1 (Fetch Weather)
-→ Outputs: temperature, conditions, location name
+If this succeeds (exit code 0 and non-empty output), parse the JSON for temperature, conditions, location.
+
+**Fallback — if curl fails, use web_search:**
 ```
+web_search("current weather in ${WEATHER_LOCATION} temperature celsius conditions today")
+```
+Extract temperature, conditions, location from search results.
+
+**Last resort — if both fail:**
+Compose a greeting without weather data. Never skip the greeting entirely.
 
 #### Step 2: Compose Greeting
 
-Use the `weather-greeting` skill:
+Build a message using the weather data:
+- Time-appropriate greeting (morning/afternoon/evening)
+- Weather emoji matching conditions
+- Temperature with advice
 
+Format:
 ```
-Execute Step 2 (Compose Message)
-→ Outputs: personalized greeting with weather
+{Greeting}! {Emoji}
+
+Here's your weather update for {Location}:
+🌡️ Temperature: {Temp}°C
+🌤️ Conditions: {Conditions}
+
+{Advice}
+
+Have a wonderful day!
 ```
 
 #### Step 3: Send to Telegram
 
-Use the built-in `message()` tool (NOT a stub):
+Use exec() to call OpenClaw's native message CLI:
 
+```bash
+openclaw message send --channel telegram --target "${TELEGRAM_CHAT_ID}" --message "<greeting_text>" --json
 ```
-message(
-  action='send',
-  target=env.TELEGRAM_CHAT_ID,
-  message=composed_greeting,
-  channel='telegram'
-)
-```
+
+Check the response for `"ok":true` to confirm delivery.
+
+If sending fails, post the greeting in-chat as fallback.
 
 ### Error Handling
 
-- **Weather fetch fails**: Send a simple greeting without weather data
-- **Telegram send fails**: Log error, retry once after 10 seconds
-- **Environment variables missing**: Fail gracefully with clear error message
+- **web_search returns no weather data**: Send a simple greeting without weather
+- **Telegram send fails**: Post the greeting in-chat instead
+- **Environment variables missing**: Report which vars are needed
 
 ## Customization
 
 ### Weather Location
 
-- If `WEATHER_LOCATION` env var is set → use it
-- Otherwise → let wttr.in auto-detect based on IP
+- If `WEATHER_LOCATION` env var is set → use it in the search query
+- Otherwise → search for general current weather
 
 ### Greeting Variations
 
@@ -87,7 +106,6 @@ Match emoji to conditions:
 
 ### Temperature Advice
 
-Add context-aware tips:
 - Below 0°C: "Bundle up! It's freezing out there."
 - 0-10°C: "It's chilly—grab a jacket!"
 - 10-20°C: "Perfect weather for a walk."
@@ -99,17 +117,17 @@ Add context-aware tips:
 ```
 Good morning! ☀️
 
-Here's your weather update for London:
-🌡️ Temperature: 18°C
-🌤️ Conditions: Partly cloudy
+Here's your weather update for Renusagar:
+🌡️ Temperature: 32°C
+🌤️ Conditions: Clear sky
 
-Perfect weather for a walk. Have a wonderful day!
+Stay cool and hydrated! Have a wonderful day!
 ```
 
 ## Critical Rules
 
-1. **Never skip the weather fetch** — it's the core feature
-2. **Always use the message() tool** — no stub implementations
-3. **Respect the schedule** — only run when triggered by cron
-4. **Keep messages concise** — aim for 3-5 lines max
-5. **Handle errors gracefully** — fallback to basic greeting if weather fails
+1. **Try the primary method first** — `curl` to weather API. Only use `web_search` as fallback if curl fails
+2. **Use `openclaw message send` for Telegram** — not the `message()` tool (not available in embedded mode)
+3. **Keep messages concise** — aim for 3-5 lines max
+4. **Handle errors gracefully** — primary fails → fallback → no-weather greeting
+5. **Always deliver something** — even if all weather methods fail, send a greeting without weather
