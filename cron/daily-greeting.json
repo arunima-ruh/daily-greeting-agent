@@ -1,0 +1,15 @@
+{
+  "name": "Daily Greeting",
+  "enabled": true,
+  "schedule": {
+    "kind": "cron",
+    "expr": "30 5 * * *",
+    "tz": "UTC"
+  },
+  "sessionTarget": "isolated",
+  "payload": {
+    "kind": "agentTurn",
+    "message": "Run daily greeting workflow",
+    "timeoutSeconds": 300
+  }
+}

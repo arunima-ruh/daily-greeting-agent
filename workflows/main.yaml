@@ -1,0 +1,14 @@
+name: daily-greeting-workflow
+version: 1.0.0
+description: "Fetches weather and sends daily greeting to Telegram"
+
+steps:
+  - id: weather-greeting
+    name: "Fetch weather and compose greeting"
+    skill: weather-greeting
+    depends_on: []
+    
+  - id: telegram-delivery
+    name: "Send greeting via Telegram"
+    skill: telegram-delivery
+    depends_on: [weather-greeting]

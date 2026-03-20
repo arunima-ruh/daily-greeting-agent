@@ -1,0 +1,28 @@
+{
+  "name": "daily-greeting-agent",
+  "version": "1.0.0",
+  "description": "Sends a daily greeting with weather update to Telegram at 11 AM IST",
+  "agent": {
+    "id": "daily-greeting-agent",
+    "name": "Daily Greeting Agent",
+    "avatar": "☀️",
+    "tone": "Friendly and warm"
+  },
+  "skills": [
+    "weather-greeting"
+  ],
+  "environment": {
+    "required": [
+      "TELEGRAM_BOT_TOKEN",
+      "TELEGRAM_CHAT_ID"
+    ],
+    "optional": [
+      "WEATHER_LOCATION"
+    ]
+  },
+  "automation": {
+    "type": "scheduled_notification",
+    "schedule": "30 5 * * *",
+    "timezone": "UTC"
+  }
+}

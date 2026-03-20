@@ -1,0 +1,14 @@
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
